@@ -1,0 +1,232 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>帳單月份勾選表</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --border: #d9e2ef;
+      --head: #e9f1ff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --danger: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 50%, #f3f6fb 100%);
+      color: var(--text);
+      padding: 24px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(31, 41, 55, 0.08);
+      padding: 16px;
+    }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .toolbar input {
+      flex: 1; min-width: 260px; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 10px; outline: none; font-size: 14px;
+    }
+    .toolbar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+    .toolbar button {
+      border: 0; border-radius: 10px; padding: 10px 14px; font-size: 14px; cursor: pointer;
+      background: var(--accent); color: #fff; font-weight: 600;
+    }
+    .hint { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+    table { border-collapse: collapse; min-width: 100%; width: max-content; }
+    th, td { border: 1px solid var(--border); padding: 9px 10px; text-align: center; white-space: nowrap; font-size: 14px; }
+    thead th { background: var(--head); position: sticky; top: 0; z-index: 2; font-weight: 700; }
+    tbody th { background: #f8fbff; position: sticky; left: 0; z-index: 1; min-width: 180px; text-align: left; }
+    .bill-cell { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .delete-btn {
+      border: 1px solid #fecaca; background: #fef2f2; color: var(--danger);
+      border-radius: 8px; font-size: 12px; padding: 4px 8px; cursor: pointer;
+    }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  </style>
+  <link rel="manifest" href="manifest.webmanifest" />`r`n  <meta name="theme-color" content="#2563eb" />`r`n  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />`r`n</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <input id="billInput" type="text" placeholder="例如：中信/6、星展14" />
+      <button id="addBillBtn" type="button">新增帳單</button>
+    </div>
+    <div class="hint">格式：帳單名稱/日期。也支援帳單名稱+日期（例如：台新3）。日期 1~31，會自動依日期排序。</div>
+
+    <div class="table-wrap">
+      <table id="billTable" aria-label="帳單月份勾選表">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "bill_checkbox_app_state_v1";
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+    let bills = [];
+    const checkboxState = new Map();
+
+    const table = document.getElementById("billTable");
+    const thead = table.querySelector("thead");
+    const tbody = table.querySelector("tbody");
+    const billInput = document.getElementById("billInput");
+    const addBillBtn = document.getElementById("addBillBtn");
+
+    function billKey(bill) { return `${bill.name}/${bill.day}`; }
+
+    function sortBills() {
+      bills.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name, "zh-Hant"));
+    }
+
+    function parseBillInput(text) {
+      const raw = text.trim();
+      if (!raw) return null;
+      let match = raw.match(/^(.+)\/(\d{1,2})$/);
+      if (!match) match = raw.match(/^(.+?)(\d{1,2})$/);
+      if (!match) return null;
+
+      const name = match[1].trim();
+      const day = Number(match[2]);
+      if (!name || Number.isNaN(day) || day < 1 || day > 31) return null;
+      return { name, day };
+    }
+
+    function saveState() {
+      const payload = {
+        bills,
+        checks: Object.fromEntries(checkboxState.entries())
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.bills)) {
+          bills = parsed.bills
+            .map((b) => ({ name: String(b.name || "").trim(), day: Number(b.day) }))
+            .filter((b) => b.name && Number.isInteger(b.day) && b.day >= 1 && b.day <= 31);
+          sortBills();
+        }
+        if (parsed.checks && typeof parsed.checks === "object") {
+          Object.entries(parsed.checks).forEach(([k, v]) => checkboxState.set(k, Boolean(v)));
+        }
+      } catch (_) {}
+    }
+
+    function addBill() {
+      const parsed = parseBillInput(billInput.value);
+      if (!parsed) {
+        alert("格式錯誤，請輸入：帳單名稱/日期（日期 1~31）");
+        return;
+      }
+      const exists = bills.some((b) => b.name === parsed.name && b.day === parsed.day);
+      if (exists) {
+        alert("此帳單已存在");
+        return;
+      }
+
+      bills.push(parsed);
+      sortBills();
+      saveState();
+      billInput.value = "";
+      renderTable();
+      billInput.focus();
+    }
+
+    function deleteBill(target) {
+      const idx = bills.findIndex((b) => b.name === target.name && b.day === target.day);
+      if (idx === -1) return;
+
+      bills.splice(idx, 1);
+      const prefix = `${billKey(target)}|`;
+      for (const key of checkboxState.keys()) {
+        if (key.startsWith(prefix)) checkboxState.delete(key);
+      }
+      saveState();
+      renderTable();
+    }
+
+    function renderTable() {
+      thead.innerHTML = "";
+      tbody.innerHTML = "";
+
+      const headerRow = document.createElement("tr");
+      const corner = document.createElement("th");
+      corner.textContent = "帳單/日期 \\ 月份";
+      headerRow.appendChild(corner);
+
+      months.forEach((month) => {
+        const th = document.createElement("th");
+        th.textContent = `${month} 月`;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+
+      bills.forEach((bill) => {
+        const row = document.createElement("tr");
+        const billTh = document.createElement("th");
+        billTh.scope = "row";
+
+        const cell = document.createElement("div");
+        cell.className = "bill-cell";
+
+        const label = document.createElement("span");
+        label.textContent = `${bill.name}/${bill.day}`;
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "delete-btn";
+        delBtn.textContent = "刪除";
+        delBtn.addEventListener("click", () => deleteBill(bill));
+
+        cell.appendChild(label);
+        cell.appendChild(delBtn);
+        billTh.appendChild(cell);
+        row.appendChild(billTh);
+
+        months.forEach((month) => {
+          const td = document.createElement("td");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+
+          const stateKey = `${billKey(bill)}|m${month}`;
+          checkbox.checked = checkboxState.get(stateKey) === true;
+          checkbox.addEventListener("change", () => {
+            checkboxState.set(stateKey, checkbox.checked);
+            saveState();
+          });
+
+          td.appendChild(checkbox);
+          row.appendChild(td);
+        });
+
+        tbody.appendChild(row);
+      });
+    }
+
+    addBillBtn.addEventListener("click", addBill);
+    billInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addBill();
+    });
+
+    loadState();
+    renderTable();
+  </script>
+  <script>`r`n    if ("serviceWorker" in navigator) {`r`n      window.addEventListener("load", () => {`r`n        navigator.serviceWorker.register("./service-worker.js").catch(() => {});`r`n      });`r`n    }`r`n  </script>`r`n</body>
+</html>
+
