@@ -55,7 +55,10 @@
     }
     input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
   </style>
-  <link rel="manifest" href="manifest.webmanifest" />`r`n  <meta name="theme-color" content="#2563eb" />`r`n  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />`r`n</head>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
+</head>
 <body>
   <div class="container">
     <div class="toolbar">
@@ -227,6 +230,14 @@
     loadState();
     renderTable();
   </script>
-  <script>`r`n    if ("serviceWorker" in navigator) {`r`n      window.addEventListener("load", () => {`r`n        navigator.serviceWorker.register("./service-worker.js").catch(() => {});`r`n      });`r`n    }`r`n  </script>`r`n</body>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
 </html>
+
 
