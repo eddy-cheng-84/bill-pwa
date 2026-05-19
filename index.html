@@ -43,12 +43,39 @@
       background: var(--accent); color: #fff; font-weight: 600;
     }
     .hint { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+    .month-pager {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .month-pager button {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .month-pager button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .pager-text {
+      font-size: 13px;
+      color: var(--muted);
+      min-width: 98px;
+      text-align: center;
+    }
     .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
     table { border-collapse: collapse; min-width: 100%; width: max-content; }
     th, td { border: 1px solid var(--border); padding: 9px 10px; text-align: center; white-space: nowrap; font-size: 14px; }
     thead th { background: var(--head); position: sticky; top: 0; z-index: 2; font-weight: 700; }
     tbody th { background: #f8fbff; position: sticky; left: 0; z-index: 1; min-width: 118px; max-width: 130px; text-align: left; }
-    .bill-cell { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; }`r`n    .bill-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 72px; display: inline-block; }
+    .bill-cell { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; }
+    .bill-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 72px; display: inline-block; }
     .delete-btn {
       border: 1px solid #fecaca; background: #fef2f2; color: var(--danger);
       border-radius: 8px; font-size: 12px; padding: 4px 8px; cursor: pointer;
@@ -67,6 +94,12 @@
     </div>
     <div class="hint">格式：帳單名稱/日期。也支援帳單名稱+日期（例如：台新3）。日期 1~31，會自動依日期排序。</div>
 
+    <div class="month-pager">
+      <button id="prevMonthsBtn" type="button">上一頁</button>
+      <span id="pagerText" class="pager-text"></span>
+      <button id="nextMonthsBtn" type="button">下一頁</button>
+    </div>
+
     <div class="table-wrap">
       <table id="billTable" aria-label="帳單月份勾選表">
         <thead></thead>
@@ -78,6 +111,8 @@
   <script>
     const STORAGE_KEY = "bill_checkbox_app_state_v1";
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
+    const monthsPerPage = 3;
+    let monthPage = 0;
     let bills = [];
     const checkboxState = new Map();
 
@@ -86,6 +121,9 @@
     const tbody = table.querySelector("tbody");
     const billInput = document.getElementById("billInput");
     const addBillBtn = document.getElementById("addBillBtn");
+    const prevMonthsBtn = document.getElementById("prevMonthsBtn");
+    const nextMonthsBtn = document.getElementById("nextMonthsBtn");
+    const pagerText = document.getElementById("pagerText");
 
     function billKey(bill) { return `${bill.name}/${bill.day}`; }
 
@@ -164,16 +202,31 @@
       renderTable();
     }
 
+    function currentMonths() {
+      const start = monthPage * monthsPerPage;
+      return months.slice(start, start + monthsPerPage);
+    }
+
+    function renderPager() {
+      const maxPage = Math.ceil(months.length / monthsPerPage) - 1;
+      prevMonthsBtn.disabled = monthPage <= 0;
+      nextMonthsBtn.disabled = monthPage >= maxPage;
+      const shown = currentMonths();
+      pagerText.textContent = `${shown[0]}月 - ${shown[shown.length - 1]}月`;
+    }
+
     function renderTable() {
       thead.innerHTML = "";
       tbody.innerHTML = "";
+
+      const visibleMonths = currentMonths();
 
       const headerRow = document.createElement("tr");
       const corner = document.createElement("th");
       corner.textContent = "帳單/日期 \\ 月份";
       headerRow.appendChild(corner);
 
-      months.forEach((month) => {
+      visibleMonths.forEach((month) => {
         const th = document.createElement("th");
         th.textContent = `${month} 月`;
         headerRow.appendChild(th);
@@ -188,7 +241,10 @@
         const cell = document.createElement("div");
         cell.className = "bill-cell";
 
-        const label = document.createElement("span");`r`n        label.className = "bill-label";`r`n        label.title = `${bill.name}/${bill.day}`;`r`n        label.textContent = `${bill.name}/${bill.day}`;
+        const label = document.createElement("span");
+        label.className = "bill-label";
+        label.title = `${bill.name}/${bill.day}`;
+        label.textContent = `${bill.name}/${bill.day}`;
 
         const delBtn = document.createElement("button");
         delBtn.type = "button";
@@ -201,7 +257,7 @@
         billTh.appendChild(cell);
         row.appendChild(billTh);
 
-        months.forEach((month) => {
+        visibleMonths.forEach((month) => {
           const td = document.createElement("td");
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
@@ -219,11 +275,28 @@
 
         tbody.appendChild(row);
       });
+
+      renderPager();
     }
 
     addBillBtn.addEventListener("click", addBill);
     billInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") addBill();
+    });
+
+    prevMonthsBtn.addEventListener("click", () => {
+      if (monthPage > 0) {
+        monthPage -= 1;
+        renderTable();
+      }
+    });
+
+    nextMonthsBtn.addEventListener("click", () => {
+      const maxPage = Math.ceil(months.length / monthsPerPage) - 1;
+      if (monthPage < maxPage) {
+        monthPage += 1;
+        renderTable();
+      }
     });
 
     loadState();
@@ -238,6 +311,3 @@
   </script>
 </body>
 </html>
-
-
-
