@@ -47,8 +47,8 @@
     table { border-collapse: collapse; min-width: 100%; width: max-content; }
     th, td { border: 1px solid var(--border); padding: 9px 10px; text-align: center; white-space: nowrap; font-size: 14px; }
     thead th { background: var(--head); position: sticky; top: 0; z-index: 2; font-weight: 700; }
-    tbody th { background: #f8fbff; position: sticky; left: 0; z-index: 1; min-width: 180px; text-align: left; }
-    .bill-cell { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    tbody th { background: #f8fbff; position: sticky; left: 0; z-index: 1; min-width: 118px; max-width: 130px; text-align: left; }
+    .bill-cell { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; }`r`n    .bill-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 72px; display: inline-block; }
     .delete-btn {
       border: 1px solid #fecaca; background: #fef2f2; color: var(--danger);
       border-radius: 8px; font-size: 12px; padding: 4px 8px; cursor: pointer;
@@ -188,8 +188,7 @@
         const cell = document.createElement("div");
         cell.className = "bill-cell";
 
-        const label = document.createElement("span");
-        label.textContent = `${bill.name}/${bill.day}`;
+        const label = document.createElement("span");`r`n        label.className = "bill-label";`r`n        label.title = `${bill.name}/${bill.day}`;`r`n        label.textContent = `${bill.name}/${bill.day}`;
 
         const delBtn = document.createElement("button");
         delBtn.type = "button";
@@ -239,5 +238,6 @@
   </script>
 </body>
 </html>
+
 
 
