@@ -112,7 +112,8 @@
     const STORAGE_KEY = "bill_checkbox_app_state_v1";
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
     const monthsPerPage = 3;
-    let monthPage = 0;
+    const currentMonth = new Date().getMonth() + 1;
+    let monthPage = Math.floor((currentMonth - 1) / monthsPerPage);
     let bills = [];
     const checkboxState = new Map();
 
