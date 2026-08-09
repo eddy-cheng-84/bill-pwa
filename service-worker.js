@@ -1,4 +1,4 @@
-const CACHE_NAME = "bill-checkbox-pwa-v4";
+const CACHE_NAME = "bill-checkbox-pwa-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -14,16 +14,11 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    Promise.all([
-      caches.keys().then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-      ),
-      self.clients.claim(),
-      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) =>
-        Promise.all(clients.map((client) => client.navigate(client.url).catch(() => null)))
-      )
-    ])
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
   );
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
