@@ -112,8 +112,7 @@
     const STORAGE_KEY = "bill_checkbox_app_state_v1";
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
     const monthsPerPage = 3;
-    const currentMonth = new Date().getMonth() + 1;
-    let monthPage = Math.floor((currentMonth - 1) / monthsPerPage);
+    let monthPage = 0;
     let bills = [];
     const checkboxState = new Map();
 
@@ -206,6 +205,11 @@
     function currentMonths() {
       const start = monthPage * monthsPerPage;
       return months.slice(start, start + monthsPerPage);
+    }
+
+    function goToCurrentMonthPage() {
+      const currentMonth = new Date().getMonth() + 1;
+      monthPage = Math.floor((currentMonth - 1) / monthsPerPage);
     }
 
     function renderPager() {
@@ -301,7 +305,20 @@
     });
 
     loadState();
+    goToCurrentMonthPage();
     renderTable();
+
+    window.addEventListener("pageshow", () => {
+      goToCurrentMonthPage();
+      renderTable();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        goToCurrentMonthPage();
+        renderTable();
+      }
+    });
   </script>
   <script>
     if ("serviceWorker" in navigator) {
