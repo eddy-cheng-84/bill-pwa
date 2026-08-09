@@ -1,7 +1,7 @@
 ﻿{
   "name": "帳單月份勾選表",
   "short_name": "帳單勾選",
-  "start_url": "./index.html",
+  "start_url": "./index.html?v=20260809",
   "display": "standalone",
   "background_color": "#f3f6fb",
   "theme_color": "#2563eb",
